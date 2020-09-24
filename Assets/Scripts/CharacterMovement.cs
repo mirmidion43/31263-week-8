@@ -8,15 +8,28 @@ public class CharacterMovement : MonoBehaviour
     private float movementSqrMagnitude;
     public float walkSpeed = 1.5f;
     public Animator animator;
+    public AudioSource footstepSource;
+    public AudioClip[] footstepClips;
+    public AudioSource background;
+    public RaycastHit hitInfo;
 
     // Update is called once per frame
     void Update()
     {
-        GetMovementInput();
-        CharacterPosition();
-        CharacterRotation();
-        WalkingAnimation();
-        FootstepAudio();    
+        if(RaycastCheck())
+        {
+            GetMovementInput();
+            CharacterRotation();
+        }
+        else
+        {
+            GetMovementInput();
+            CharacterPosition();
+            CharacterRotation();
+            WalkingAnimation();
+            FootstepAudio();
+        }
+           
     }
 
     private void GetMovementInput()
@@ -47,6 +60,54 @@ public class CharacterMovement : MonoBehaviour
     }
     private void FootstepAudio()
     {
+        if(movementSqrMagnitude > 0.3f && !footstepSource.isPlaying)
+        {
+            if(footstepSource.clip == footstepClips[0])
+                footstepSource.clip = footstepClips[1];
+            else
+            {
+                footstepSource.clip = footstepClips[0];
+            }
+               
+            footstepSource.volume = movementSqrMagnitude;
+            footstepSource.Play();
+            background.volume = 0.5f;
+        }
 
+        else if(movementSqrMagnitude <= 0.3f && footstepSource.isPlaying)
+        {
+            footstepSource.Stop();
+            background.volume = 1.0f;
+        }
+    }
+
+    private void OnTriggerExit(Collider other) 
+    {
+        Debug.Log("Trigger Exit: " + other.name + " : " + other.transform.position);
+    }
+
+    private void OnCollisionEnter(Collision other) 
+    {
+        Debug.Log("Collision Enter: " + other.collider.gameObject.name + " : " + other.contacts[0].point);
+    }
+    private void OnCollisionStay(Collision other) 
+    {
+        if(other.collider.gameObject.tag == "Impassable")
+            Debug.Log("Collision Stay: " + other.collider.gameObject.name);
+    }
+
+    private bool RaycastCheck()
+    {
+        Vector3 origin = gameObject.transform.position + new Vector3(0.0f,0.5f,0.0f);
+        bool hit = Physics.Raycast(origin, gameObject.transform.TransformDirection(Vector3.forward), out hitInfo, 5.0f);
+        if(hit)
+        {
+            Debug.Log("Raycast Hit: " + hitInfo.collider.gameObject.name);
+            if(hitInfo.collider.gameObject.tag == "Freeze")
+                return true;
+            else
+                return false;
+        }
+        return false;
     }
 }
